@@ -13,7 +13,7 @@
 
     <script>
         // =========================================================================
-        // เอา URL ของ Google Apps Script Web App ของคุณมาใส่ที่นี่ !!!
+        // URL ของ Google Apps Script Web App ของคุณ
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzso9fwf1Wm933Jr5gilZasfpYQdqsF0VfJ7bXHVFrR79Eq6zRuaHH892sCzSlbcODv/exec"; 
         // =========================================================================
 
@@ -37,8 +37,10 @@
         body { font-family: 'Sarabun', sans-serif; background-color: #f9fafb; }
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .gradient-text { background: linear-gradient(to right, #cc0000, #ffcc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        video { border-radius: 1rem; object-fit: cover; transform: scaleX(-1); }
-        canvas { position: absolute; top: 0; left: 0; border-radius: 1rem; transform: scaleX(-1); }
+        
+        /* เอา transform scaleX(-1) ออกจาก CSS หลัก เพื่อให้ JS ควบคุมการกลับซ้ายขวาแทน (ตอนสลับกล้อง) */
+        video { border-radius: 1rem; object-fit: cover; transition: transform 0.3s ease; }
+        canvas { position: absolute; top: 0; left: 0; border-radius: 1rem; transition: transform 0.3s ease; }
         .video-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
         
         /* Custom Animations */
@@ -100,8 +102,10 @@
                     <div class="scanner-line hidden" id="scanner-line"></div>
                 </div>
 
-                <div class="mt-6 flex justify-center space-x-4">
+                <div class="mt-6 flex flex-wrap justify-center gap-3">
                     <button id="btn-start-scan" onclick="startScanningProcess()" class="bg-brand-red hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105"><i class="fas fa-play mr-2"></i>เปิดกล้อง</button>
+                    <!-- เพิ่มปุ่มสลับกล้องสำหรับหน้าสแกน -->
+                    <button id="btn-switch-scan" onclick="switchCamera('scan')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 px-6 py-3 rounded-full font-bold shadow transition-all hidden"><i class="fas fa-sync-alt mr-2"></i>สลับกล้อง</button>
                     <button id="btn-stop-scan" onclick="stopCamera()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-full font-bold shadow transition-all hidden"><i class="fas fa-stop mr-2"></i>ปิดกล้อง</button>
                 </div>
             </div>
@@ -123,8 +127,10 @@
                                 <i class="fas fa-camera text-4xl mb-2"></i><br>กล้องยังไม่เปิด
                             </div>
                         </div>
-                        <div class="flex justify-center space-x-2">
-                            <button onclick="startRegisterCamera()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow"><i class="fas fa-video mr-1"></i>เปิดกล้อง</button>
+                        <div class="flex justify-center flex-wrap gap-2">
+                            <button id="btn-start-reg" onclick="startRegisterCamera()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow"><i class="fas fa-video mr-1"></i>เปิดกล้อง</button>
+                            <!-- เพิ่มปุ่มสลับกล้องสำหรับหน้าลงทะเบียน -->
+                            <button id="btn-switch-reg" onclick="switchCamera('register')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg shadow hidden"><i class="fas fa-sync-alt mr-1"></i>สลับกล้อง</button>
                             <button onclick="captureFace()" id="btn-capture" disabled class="bg-brand-yellow hover:bg-yellow-500 text-brand-red px-4 py-2 rounded-lg shadow font-bold disabled:opacity-50"><i class="fas fa-camera-retro mr-1"></i>บันทึกใบหน้า</button>
                         </div>
                     </div>
@@ -215,7 +221,7 @@
     </main>
 
     <footer class="bg-gray-800 text-white text-center py-4 mt-auto">
-        <p class="text-sm">© 2026 ระบบสแกนใบหน้าเช็คชื่อนักเรียน โรงเรียนวัดแม่กะ. พัฒนาโดยใช้ Face-API.js & Google Apps Script.</p>
+        <p class="text-sm">© 2026 ระบบสแกนใบหน้าเช็คชื่อนักเรียน โรงเรียนวัดแม่กะ.</p>
     </footer>
 
     <!-- Scripts -->
@@ -227,10 +233,10 @@
         let currentStream = null;
         let scanInterval = null;
         let isScanningActive = false;
+        let currentFacingMode = 'user'; // 'user' = กล้องหน้า, 'environment' = กล้องหลัง
 
         // On Load
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set default date for dashboard to today
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('dash-date').value = today;
             
@@ -252,7 +258,7 @@
             btn.classList.remove('hover:bg-white/20', 'text-white');
             btn.classList.add('bg-brand-yellow', 'text-brand-red', 'shadow-md');
 
-            stopCamera(); // Stop camera when switching tabs
+            stopCamera();
 
             if(tabId === 'dashboard') loadDashboard();
         }
@@ -265,28 +271,27 @@
             document.getElementById('global-loading').classList.add('hidden');
         }
 
-        // โหลดเสียงล่วงหน้าเพื่อป้องกันบั๊กในบางบราวเซอร์
+        // --- ระบบเสียงอ่านชื่อ ---
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
         }
 
         function speakText(text) {
             if ('speechSynthesis' in window) {
-                // ล้างคิวเสียงเก่าที่อาจค้างอยู่
                 window.speechSynthesis.cancel(); 
                 
-                const msg = new SpeechSynthesisUtterance(text);
+                // แปลงคำย่อให้อ่านเต็ม เพื่อความไพเราะ
+                let speakMsg = text.replace(/ด\.ช\./g, 'เด็กชาย ').replace(/ด\.ญ\./g, 'เด็กหญิง ');
+                
+                const msg = new SpeechSynthesisUtterance(speakMsg);
                 msg.lang = 'th-TH';
                 msg.rate = 1;
                 msg.volume = 1;
                 msg.pitch = 1;
 
-                // บังคับหาเสียงภาษาไทยเผื่อระบบสับสน
                 const voices = window.speechSynthesis.getVoices();
                 const thaiVoice = voices.find(v => v.lang.includes('th'));
-                if (thaiVoice) {
-                    msg.voice = thaiVoice;
-                }
+                if (thaiVoice) msg.voice = thaiVoice;
 
                 window.speechSynthesis.speak(msg);
             }
@@ -294,10 +299,6 @@
 
         // --- Data Fetching (GAS) ---
         async function fetchAPI(payload) {
-            if(GAS_URL === "YOUR_GAS_WEB_APP_URL_HERE") {
-                alert("ข้อผิดพลาด: คุณยังไม่ได้ใส่ URL ของ Google Apps Script ในไฟล์ HTML");
-                return {status: 'error'};
-            }
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
@@ -341,7 +342,7 @@
                 }
             });
             if (labeledDescriptors.length > 0) {
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45); // Threshold 0.45 (ยิ่งน้อยยิ่งเข้มงวด)
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
             } else {
                 faceMatcher = null;
             }
@@ -349,13 +350,18 @@
 
         // --- Camera Handling ---
         async function getCameraStream() {
-            if (currentStream) stopCamera();
+            // หยุดกล้องเดิมก่อน (กรณีมีการสลับกล้อง)
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: currentFacingMode } 
+                });
                 currentStream = stream;
                 return stream;
             } catch (err) {
-                alert("ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์");
+                alert("ไม่สามารถเข้าถึงกล้องได้ หรือกล้องกำลังถูกใช้งาน");
                 return null;
             }
         }
@@ -370,24 +376,41 @@
                 scanInterval = null;
             }
             isScanningActive = false;
-            document.getElementById('scanner-line').classList.add('hidden');
             
-            // UI Resets
+            // รีเซ็ต UI หน้าสแกน
+            document.getElementById('scanner-line').classList.add('hidden');
             document.getElementById('btn-start-scan').classList.remove('hidden');
+            document.getElementById('btn-switch-scan').classList.add('hidden');
             document.getElementById('btn-stop-scan').classList.add('hidden');
+            
+            // รีเซ็ต UI หน้าลงทะเบียน
+            document.getElementById('btn-start-reg').classList.remove('hidden');
+            document.getElementById('btn-switch-reg').classList.add('hidden');
             document.getElementById('reg-video').classList.add('hidden');
             document.getElementById('reg-placeholder').classList.remove('hidden');
             document.getElementById('btn-capture').disabled = true;
         }
 
+        // ฟังก์ชันสลับกล้อง (หน้า/หลัง)
+        async function switchCamera(tab) {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            
+            if (tab === 'scan') {
+                if (scanInterval) clearInterval(scanInterval); // หยุด Loop ของเก่า
+                await startScanningProcess();
+            } else if (tab === 'register') {
+                await startRegisterCamera();
+            }
+        }
+
         // --- TAB 1: Scanning Logic ---
         async function startScanningProcess() {
-            // ปลดล็อคระบบเสียงเมื่อผู้ใช้กดปุ่ม (แก้ปัญหาไม่ได้ยินเสียง)
+            // ปลดล็อคระบบเสียงเมื่อผู้ใช้กดปุ่ม
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                window.speechSynthesis.resume(); // ปลุกระบบเสียงที่อาจหลับอยู่
+                window.speechSynthesis.resume();
                 const unlockAudio = new SpeechSynthesisUtterance('ระบบพร้อม');
-                unlockAudio.volume = 0.01; // ใช้เสียงเบามากแทนการปิดเสียงสนิท เพื่อหลอกบราวเซอร์
+                unlockAudio.volume = 0.01;
                 window.speechSynthesis.speak(unlockAudio);
             }
 
@@ -398,20 +421,30 @@
             }
 
             const video = document.getElementById('scan-video');
+            const canvas = document.getElementById('scan-canvas');
+            
             const stream = await getCameraStream();
             if (!stream) return;
             
             video.srcObject = stream;
+            
+            // ปรับทิศทางการแสดงผล (กล้องหน้ากลับซ้ายขวาแบบกระจก, กล้องหลังปกติ)
+            const transformStyle = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
+            video.style.transform = transformStyle;
+            canvas.style.transform = transformStyle;
+
+            // จัดการ UI ปุ่ม
             document.getElementById('btn-start-scan').classList.add('hidden');
+            document.getElementById('btn-switch-scan').classList.remove('hidden');
             document.getElementById('btn-stop-scan').classList.remove('hidden');
             document.getElementById('scanner-line').classList.remove('hidden');
             
             video.onplay = () => {
-                const canvas = document.getElementById('scan-canvas');
                 const displaySize = { width: video.videoWidth, height: video.videoHeight };
                 faceapi.matchDimensions(canvas, displaySize);
                 
                 isScanningActive = true;
+                if (scanInterval) clearInterval(scanInterval);
                 
                 scanInterval = setInterval(async () => {
                     if(!isScanningActive) return;
@@ -422,22 +455,18 @@
                     
                     const resizedDetections = faceapi.resizeResults(detections, displaySize);
                     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // วาดกรอบใบหน้า (เอาออกได้ถ้าไม่ต้องการให้รก)
-                    // faceapi.draw.drawDetections(canvas, resizedDetections);
 
                     if (detections.length > 0) {
                         const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
                         
                         for (const result of results) {
                             if (result.label !== 'unknown') {
-                                // เจอใบหน้าและจำได้
                                 handleSuccessfulScan(result.label);
-                                break; // จัดการทีละคน
+                                break; 
                             }
                         }
                     }
-                }, 500); // สแกนทุกครึ่งวินาที
+                }, 500); 
             };
         }
 
@@ -454,9 +483,7 @@
             const popupTitle = document.getElementById('scan-popup-title');
             const popupName = document.getElementById('scan-popup-name');
             
-            // ตั้งค่าสถานะ: กำลังบันทึก
             popupOverlay.classList.remove('hidden');
-            // กระตุ้นให้เบราว์เซอร์รับทราบการแสดงผลก่อนที่จะค่อยๆ Fade in
             void popupOverlay.offsetWidth; 
             popupOverlay.classList.remove('opacity-0');
             popupCard.classList.remove('scale-95');
@@ -471,7 +498,6 @@
             // ส่งข้อมูลไปบันทึก
             const res = await fetchAPI({ action: 'recordAttendance', studentId: studentId });
             
-            // ตั้งค่าสถานะ: บันทึกสำเร็จ
             if(res.status === 'success') {
                 popupIcon.className = "fas fa-check-circle text-7xl text-green-500";
                 popupTitle.innerText = res.message === 'เช็คชื่อแล้ว' ? "เช็คชื่อไปแล้ว" : "บันทึกสำเร็จ";
@@ -479,8 +505,8 @@
                 popupName.innerText = res.fullName;
                 popupName.className = "text-3xl font-bold text-gray-800 mt-4";
                 
-                // สั่งให้อ่านชื่อ
-                speakText(`สวัสดี ${student.firstName}`);
+                // สั่งให้อ่านชื่อเต็มพร้อมขยายคำย่อ
+                speakText(`สวัสดี ${student.fullName}`);
             } else {
                 popupIcon.className = "fas fa-times-circle text-7xl text-red-500";
                 popupTitle.innerText = "เกิดข้อผิดพลาด";
@@ -494,7 +520,6 @@
                 popupCard.classList.remove('scale-100');
                 popupCard.classList.add('scale-95');
                 
-                // รอให้ Animation ตอน Fade out จบแล้วค่อยซ่อน
                 setTimeout(() => {
                     popupOverlay.classList.add('hidden');
                     document.getElementById('scanner-line').classList.remove('hidden');
@@ -525,12 +550,22 @@
         async function startRegisterCamera() {
             await loadFaceModels();
             const video = document.getElementById('reg-video');
+            
             const stream = await getCameraStream();
             if (!stream) return;
             
             video.srcObject = stream;
+            
+            // ปรับทิศทางการแสดงผลเหมือนกล้องสแกน
+            const transformStyle = currentFacingMode === 'user' ? 'scaleX(-1)' : 'none';
+            video.style.transform = transformStyle;
+
             video.classList.remove('hidden');
             document.getElementById('reg-placeholder').classList.add('hidden');
+            
+            // จัดการปุ่ม
+            document.getElementById('btn-start-reg').classList.add('hidden');
+            document.getElementById('btn-switch-reg').classList.remove('hidden');
             document.getElementById('btn-capture').disabled = false;
         }
 
@@ -548,7 +583,6 @@
             statusDiv.className = "text-sm p-3 rounded-lg bg-blue-100 text-blue-700 block";
             statusDiv.innerHTML = "<i class='fas fa-spinner fa-spin'></i> กำลังสกัดข้อมูลใบหน้า... กรุณามองกล้องนิ่งๆ";
 
-            // สกัดข้อมูลใบหน้า
             const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
                                            .withFaceLandmarks()
                                            .withFaceDescriptor();
@@ -559,7 +593,6 @@
                 return;
             }
 
-            // แปลง Float32Array เป็น Array ธรรมดาเพื่อส่งผ่าน JSON
             const descriptorArray = Array.from(detection.descriptor);
 
             statusDiv.innerHTML = "<i class='fas fa-spinner fa-spin'></i> กำลังบันทึกข้อมูลลงฐานข้อมูล...";
@@ -574,14 +607,13 @@
                 statusDiv.className = "text-sm p-3 rounded-lg bg-green-100 text-green-700 block";
                 statusDiv.innerHTML = "<i class='fas fa-check-circle'></i> บันทึกใบหน้าสำเร็จเรียบร้อย";
                 
-                // อัปเดตข้อมูล Local
                 const studentIndex = allStudents.findIndex(s => s.id.toString() === studentId.toString());
                 if(studentIndex > -1) {
                     allStudents[studentIndex].hasFaceData = true;
                     allStudents[studentIndex].descriptor = descriptorArray;
                 }
-                buildFaceMatcher(); // สร้าง AI Model ใหม่
-                filterStudents(); // รีเฟรช Dropdown
+                buildFaceMatcher(); 
+                filterStudents(); 
                 
             } else {
                 statusDiv.className = "text-sm p-3 rounded-lg bg-red-100 text-red-700 block";
@@ -629,7 +661,6 @@
                 
                 tbody.innerHTML = html;
                 
-                // Update Cards
                 document.getElementById('dash-total').innerText = grandTotal;
                 document.getElementById('dash-present').innerText = grandPresent;
                 document.getElementById('dash-absent').innerText = grandAbsent;
