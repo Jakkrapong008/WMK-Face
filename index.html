@@ -479,15 +479,8 @@
                 popupName.innerText = res.fullName;
                 popupName.className = "text-3xl font-bold text-gray-800 mt-4";
                 
-                // แปลงคำย่อให้อ่านออกเสียงได้อย่างเป็นธรรมชาติ (ป้องกัน AI อ่าน ดอ-ชอ)
-                let spokenName = student.fullName;
-                spokenName = spokenName.replace('ด.ช.', 'เด็กชาย ').replace('ด.ญ.', 'เด็กหญิง ');
-                
-                // สั่งให้อ่านชื่อแบบเต็ม
-                speakText(`สวัสดี ${spokenName}`);
-            } else {
-                popupIcon.className = "fas fa-times-circle text-7xl text-red-500";
-                popupTitle.innerText = "เกิดข้อผิดพลาด";
+                // สั่งให้อ่านชื่อ
+                speakText(`สวัสดี ${student.firstName}`);
             } else {
                 popupIcon.className = "fas fa-times-circle text-7xl text-red-500";
                 popupTitle.innerText = "เกิดข้อผิดพลาด";
