@@ -265,11 +265,29 @@
             document.getElementById('global-loading').classList.add('hidden');
         }
 
+        // โหลดเสียงล่วงหน้าเพื่อป้องกันบั๊กในบางบราวเซอร์
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+        }
+
         function speakText(text) {
             if ('speechSynthesis' in window) {
+                // ล้างคิวเสียงเก่าที่อาจค้างอยู่
+                window.speechSynthesis.cancel(); 
+                
                 const msg = new SpeechSynthesisUtterance(text);
                 msg.lang = 'th-TH';
                 msg.rate = 1;
+                msg.volume = 1;
+                msg.pitch = 1;
+
+                // บังคับหาเสียงภาษาไทยเผื่อระบบสับสน
+                const voices = window.speechSynthesis.getVoices();
+                const thaiVoice = voices.find(v => v.lang.includes('th'));
+                if (thaiVoice) {
+                    msg.voice = thaiVoice;
+                }
+
                 window.speechSynthesis.speak(msg);
             }
         }
@@ -366,8 +384,10 @@
         async function startScanningProcess() {
             // ปลดล็อคระบบเสียงเมื่อผู้ใช้กดปุ่ม (แก้ปัญหาไม่ได้ยินเสียง)
             if ('speechSynthesis' in window) {
-                const unlockAudio = new SpeechSynthesisUtterance('');
-                unlockAudio.volume = 0;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume(); // ปลุกระบบเสียงที่อาจหลับอยู่
+                const unlockAudio = new SpeechSynthesisUtterance('ระบบพร้อม');
+                unlockAudio.volume = 0.01; // ใช้เสียงเบามากแทนการปิดเสียงสนิท เพื่อหลอกบราวเซอร์
                 window.speechSynthesis.speak(unlockAudio);
             }
 
