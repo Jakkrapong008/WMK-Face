@@ -104,12 +104,6 @@
                     <button id="btn-start-scan" onclick="startScanningProcess()" class="bg-brand-red hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105"><i class="fas fa-play mr-2"></i>เปิดกล้อง</button>
                     <button id="btn-stop-scan" onclick="stopCamera()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-full font-bold shadow transition-all hidden"><i class="fas fa-stop mr-2"></i>ปิดกล้อง</button>
                 </div>
-
-                <!-- Alert Box -->
-                <div id="scan-alert" class="mt-6 p-4 rounded-xl hidden flex items-center justify-center space-x-3 text-lg font-bold transition-all duration-300">
-                    <i id="scan-alert-icon" class="fas fa-check-circle text-2xl"></i>
-                    <span id="scan-alert-text"></span>
-                </div>
             </div>
         </div>
 
@@ -204,6 +198,17 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- Popup Overlay กลางจอ -->
+        <div id="scan-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 text-center" id="scan-popup-card">
+                <div id="scan-popup-icon-container" class="mb-4">
+                    <i id="scan-popup-icon" class="fas fa-spinner fa-spin text-7xl text-blue-500"></i>
+                </div>
+                <h2 id="scan-popup-title" class="text-3xl font-bold mb-3 text-blue-600">กำลังตรวจสอบ...</h2>
+                <p id="scan-popup-name" class="text-2xl font-medium text-gray-600"></p>
             </div>
         </div>
 
@@ -359,6 +364,13 @@
 
         // --- TAB 1: Scanning Logic ---
         async function startScanningProcess() {
+            // ปลดล็อคระบบเสียงเมื่อผู้ใช้กดปุ่ม (แก้ปัญหาไม่ได้ยินเสียง)
+            if ('speechSynthesis' in window) {
+                const unlockAudio = new SpeechSynthesisUtterance('');
+                unlockAudio.volume = 0;
+                window.speechSynthesis.speak(unlockAudio);
+            }
+
             await loadFaceModels();
             if (!faceMatcher) {
                 alert("ยังไม่มีข้อมูลใบหน้าในระบบ กรุณาลงทะเบียนใบหน้านักเรียนก่อน");
@@ -414,35 +426,60 @@
             document.getElementById('scanner-line').classList.add('hidden');
             
             const student = allStudents.find(s => s.id.toString() === studentId);
-            const alertBox = document.getElementById('scan-alert');
-            const alertText = document.getElementById('scan-alert-text');
-            const alertIcon = document.getElementById('scan-alert-icon');
             
-            // แสดงสถานะกำลังบันทึก
-            alertBox.className = "mt-6 p-4 rounded-xl flex items-center justify-center space-x-3 text-lg font-bold bg-blue-100 text-blue-700";
-            alertIcon.className = "fas fa-spinner fa-spin text-2xl";
-            alertText.innerText = `กำลังบันทึกข้อมูล ${student.firstName}...`;
+            // แสดง Popup กลางจอ
+            const popupOverlay = document.getElementById('scan-popup-overlay');
+            const popupCard = document.getElementById('scan-popup-card');
+            const popupIcon = document.getElementById('scan-popup-icon');
+            const popupTitle = document.getElementById('scan-popup-title');
+            const popupName = document.getElementById('scan-popup-name');
             
-            speakText(`สวัสดี ${student.firstName}`);
+            // ตั้งค่าสถานะ: กำลังบันทึก
+            popupOverlay.classList.remove('hidden');
+            // กระตุ้นให้เบราว์เซอร์รับทราบการแสดงผลก่อนที่จะค่อยๆ Fade in
+            void popupOverlay.offsetWidth; 
+            popupOverlay.classList.remove('opacity-0');
+            popupCard.classList.remove('scale-95');
+            popupCard.classList.add('scale-100');
+            
+            popupIcon.className = "fas fa-spinner fa-spin text-7xl text-blue-500";
+            popupTitle.innerText = "กำลังตรวจสอบ...";
+            popupTitle.className = "text-3xl font-bold mb-3 text-blue-600";
+            popupName.innerText = student.fullName;
+            popupName.className = "text-2xl font-medium text-gray-600";
 
             // ส่งข้อมูลไปบันทึก
             const res = await fetchAPI({ action: 'recordAttendance', studentId: studentId });
             
+            // ตั้งค่าสถานะ: บันทึกสำเร็จ
             if(res.status === 'success') {
-                alertBox.className = "mt-6 p-4 rounded-xl flex items-center justify-center space-x-3 text-lg font-bold bg-green-100 text-green-700";
-                alertIcon.className = "fas fa-check-circle text-2xl";
-                alertText.innerText = res.message === 'เช็คชื่อแล้ว' ? `${res.fullName} (เช็คชื่อไปแล้ว)` : `บันทึกสำเร็จ: ${res.fullName}`;
+                popupIcon.className = "fas fa-check-circle text-7xl text-green-500";
+                popupTitle.innerText = res.message === 'เช็คชื่อแล้ว' ? "เช็คชื่อไปแล้ว" : "บันทึกสำเร็จ";
+                popupTitle.className = "text-4xl font-bold mb-3 text-green-600";
+                popupName.innerText = res.fullName;
+                popupName.className = "text-3xl font-bold text-gray-800 mt-4";
+                
+                // สั่งให้อ่านชื่อ
+                speakText(`สวัสดี ${student.firstName}`);
             } else {
-                alertBox.className = "mt-6 p-4 rounded-xl flex items-center justify-center space-x-3 text-lg font-bold bg-red-100 text-red-700";
-                alertIcon.className = "fas fa-times-circle text-2xl";
-                alertText.innerText = "เกิดข้อผิดพลาดในการบันทึก";
+                popupIcon.className = "fas fa-times-circle text-7xl text-red-500";
+                popupTitle.innerText = "เกิดข้อผิดพลาด";
+                popupTitle.className = "text-3xl font-bold mb-3 text-red-600";
+                popupName.innerText = res.message || "ไม่สามารถบันทึกได้";
             }
 
-            // หน่วงเวลา 3 วินาทีก่อนเริ่มสแกนคนต่อไป
+            // หน่วงเวลา 3 วินาทีก่อนปิด Popup และเริ่มสแกนคนต่อไป
             setTimeout(() => {
-                alertBox.classList.add('hidden');
-                document.getElementById('scanner-line').classList.remove('hidden');
-                isScanningActive = true;
+                popupOverlay.classList.add('opacity-0');
+                popupCard.classList.remove('scale-100');
+                popupCard.classList.add('scale-95');
+                
+                // รอให้ Animation ตอน Fade out จบแล้วค่อยซ่อน
+                setTimeout(() => {
+                    popupOverlay.classList.add('hidden');
+                    document.getElementById('scanner-line').classList.remove('hidden');
+                    isScanningActive = true;
+                }, 300); 
             }, 3000);
         }
 
