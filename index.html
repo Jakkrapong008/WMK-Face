@@ -452,7 +452,7 @@
                 }
             });
             if (labeledDescriptors.length > 0) {
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.45);
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.38); // ปรับ Threshold เป็น 0.38 เพื่อความแม่นยำที่สูงขึ้น
             } else {
                 faceMatcher = null;
             }
