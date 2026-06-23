@@ -9,9 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Load face-api.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Load Chart.js and Datalabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
@@ -42,12 +40,35 @@
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .gradient-text { background: linear-gradient(to right, #cc0000, #ffcc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        /* เอา transform scaleX(-1) ออกจาก CSS หลัก เพื่อให้ JS ควบคุมการกลับซ้ายขวาแทน (ตอนสลับกล้อง) */
         video { border-radius: 1rem; object-fit: cover; transition: transform 0.3s ease; }
         canvas { position: absolute; top: 0; left: 0; border-radius: 1rem; transition: transform 0.3s ease; }
         .video-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; }
         
-        /* Custom Animations */
+        /* สไตล์สำหรับกรอบวงรีบังคับใบหน้า */
+        .face-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px dashed rgba(255, 204, 0, 0.8);
+            border-radius: 50%; /* ทำให้เป็นวงรี */
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.55); /* ทำพื้นหลังรอบนอกให้มืดลง */
+            pointer-events: none;
+            z-index: 15;
+            display: none; /* ซ่อนไว้ก่อน จะโชว์ตอนเปิดกล้อง */
+        }
+        .face-guide-scan { width: 220px; height: 300px; max-width: 55%; max-height: 70%; }
+        .face-guide-reg { width: 150px; height: 200px; max-width: 60%; max-height: 80%; }
+        
+        /* อนิเมชันกระพริบเบาๆ ให้กรอบน่าสนใจ */
+        @keyframes pulse-border {
+            0% { border-color: rgba(255, 204, 0, 1); box-shadow: 0 0 0 2000px rgba(0,0,0,0.55), 0 0 20px rgba(255, 204, 0, 0.3) inset; }
+            50% { border-color: rgba(255, 204, 0, 0.4); box-shadow: 0 0 0 2000px rgba(0,0,0,0.55), 0 0 0px rgba(255, 204, 0, 0) inset; }
+            100% { border-color: rgba(255, 204, 0, 1); box-shadow: 0 0 0 2000px rgba(0,0,0,0.55), 0 0 20px rgba(255, 204, 0, 0.3) inset; }
+        }
+        .face-guide.active { display: block; animation: pulse-border 2s infinite; }
+
+        /* Custom Animations สำหรับเส้นสแกน */
         @keyframes scanline {
             0% { top: 0%; opacity: 0; }
             10% { opacity: 1; }
@@ -65,7 +86,6 @@
 </head>
 <body class="min-h-screen text-gray-800 flex flex-col relative pb-20">
 
-    <!-- Header -->
     <header class="bg-brand-red text-white shadow-lg relative overflow-hidden">
         <div class="absolute inset-0 bg-brand-redlight opacity-30 transform -skew-y-3 origin-top-left z-0"></div>
         <div class="max-w-6xl mx-auto px-4 py-4 relative z-10 flex flex-col sm:flex-row items-center justify-between">
@@ -76,7 +96,6 @@
                     <p class="text-sm font-light">ระบบสแกนใบหน้าเช็คชื่อนักเรียนอัจฉริยะ</p>
                 </div>
             </div>
-            <!-- Navigation -->
             <nav class="flex space-x-2 bg-white/10 p-1 rounded-xl">
                 <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-brand-yellow text-brand-red shadow-md"><i class="fas fa-camera mr-2"></i>สแกนใบหน้า</button>
                 <button onclick="switchTab('register')" id="nav-register" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/20 text-white"><i class="fas fa-user-plus mr-2"></i>ลงทะเบียน</button>
@@ -85,61 +104,59 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-grow max-w-6xl mx-auto px-4 py-8 w-full">
         
-        <!-- Loading Overlay -->
         <div id="global-loading" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
             <i class="fas fa-spinner fa-spin text-5xl text-brand-red mb-4"></i>
             <h2 class="text-xl font-bold text-brand-red" id="loading-text">กำลังโหลดโมเดล AI...</h2>
         </div>
 
-        <!-- TAB 1: สแกนใบหน้า -->
         <div id="tab-scan" class="tab-content active">
             <div class="glass-panel p-6 sm:p-8 text-center max-w-3xl mx-auto border-t-4 border-brand-red">
                 <h2 class="text-2xl font-bold mb-2 gradient-text"><i class="fas fa-face-viewfinder mr-2"></i>สแกนใบหน้าเช็คชื่อเข้าเรียน</h2>
-                <p class="text-gray-500 mb-6">กรุณามองกล้องเพื่อให้ระบบบันทึกเวลาเรียน</p>
+                <p class="text-gray-500 mb-6">กรุณาวางใบหน้าให้อยู่ในกรอบวงรีเพื่อให้ระบบบันทึกเวลาเรียน</p>
                 
                 <div class="video-container bg-gray-900 rounded-2xl overflow-hidden shadow-inner border-4 border-gray-200" id="scan-container">
                     <video id="scan-video" autoplay muted playsinline class="w-full h-auto"></video>
                     <canvas id="scan-canvas"></canvas>
+                    
+                    <div id="scan-guide" class="face-guide face-guide-scan"></div>
+                    
                     <div class="scanner-line hidden" id="scanner-line"></div>
                 </div>
 
                 <div class="mt-6 flex flex-wrap justify-center gap-3">
                     <button id="btn-start-scan" onclick="startScanningProcess()" class="bg-brand-red hover:bg-red-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105"><i class="fas fa-play mr-2"></i>เปิดกล้อง</button>
-                    <!-- เพิ่มปุ่มสลับกล้องสำหรับหน้าสแกน -->
                     <button id="btn-switch-scan" onclick="switchCamera('scan')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 px-6 py-3 rounded-full font-bold shadow transition-all hidden"><i class="fas fa-sync-alt mr-2"></i>สลับกล้อง</button>
                     <button id="btn-stop-scan" onclick="stopCamera()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-3 rounded-full font-bold shadow transition-all hidden"><i class="fas fa-stop mr-2"></i>ปิดกล้อง</button>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: ลงทะเบียนใบหน้า -->
         <div id="tab-register" class="tab-content">
             <div class="glass-panel p-6 sm:p-8 max-w-4xl mx-auto border-t-4 border-brand-yellow">
                 <h2 class="text-2xl font-bold mb-2 text-center text-gray-800"><i class="fas fa-id-card mr-2 text-brand-yellow"></i>เพิ่มข้อมูลใบหน้านักเรียน</h2>
-                <p class="text-gray-500 mb-6 text-center">เลือกรายชื่อนักเรียนและถ่ายภาพเพื่อผูกข้อมูลใบหน้า</p>
+                <p class="text-gray-500 mb-6 text-center">เลือกรายชื่อนักเรียนและถ่ายภาพให้พอดีกับกรอบเพื่อผูกข้อมูลใบหน้า</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Camera Section -->
                     <div>
-                        <div class="video-container bg-gray-100 rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 h-64 flex items-center justify-center mb-4">
-                            <video id="reg-video" autoplay muted playsinline class="w-full h-full hidden"></video>
-                            <canvas id="reg-canvas" class="hidden"></canvas>
-                            <div id="reg-placeholder" class="text-gray-400 text-center">
+                        <div class="video-container bg-gray-100 rounded-2xl overflow-hidden border-2 border-dashed border-gray-300 h-64 flex items-center justify-center mb-4 relative" id="reg-container">
+                            <video id="reg-video" autoplay muted playsinline class="w-full h-full hidden" style="object-fit: cover;"></video>
+                            <canvas id="reg-canvas" class="hidden absolute top-0 left-0 w-full h-full"></canvas>
+                            
+                            <div id="reg-guide" class="face-guide face-guide-reg"></div>
+
+                            <div id="reg-placeholder" class="text-gray-400 text-center z-10">
                                 <i class="fas fa-camera text-4xl mb-2"></i><br>กล้องยังไม่เปิด
                             </div>
                         </div>
                         <div class="flex justify-center flex-wrap gap-2">
                             <button id="btn-start-reg" onclick="startRegisterCamera()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow"><i class="fas fa-video mr-1"></i>เปิดกล้อง</button>
-                            <!-- เพิ่มปุ่มสลับกล้องสำหรับหน้าลงทะเบียน -->
                             <button id="btn-switch-reg" onclick="switchCamera('register')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg shadow hidden"><i class="fas fa-sync-alt mr-1"></i>สลับกล้อง</button>
                             <button onclick="captureFace()" id="btn-capture" disabled class="bg-brand-yellow hover:bg-yellow-500 text-brand-red px-4 py-2 rounded-lg shadow font-bold disabled:opacity-50"><i class="fas fa-camera-retro mr-1"></i>บันทึกใบหน้า</button>
                         </div>
                     </div>
 
-                    <!-- Form Section -->
                     <div class="flex flex-col space-y-4 justify-center">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">ระดับชั้น</label>
@@ -162,7 +179,6 @@
             </div>
         </div>
 
-        <!-- TAB 3: สารสนเทศการมาเรียน -->
         <div id="tab-dashboard" class="tab-content">
             <div class="glass-panel p-6 sm:p-8 border-t-4 border-blue-500">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
@@ -174,7 +190,6 @@
                     </div>
                 </div>
 
-                <!-- Summary Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                     <div class="bg-white p-4 rounded-xl shadow border-l-4 border-gray-500 flex items-center justify-between">
                         <div><p class="text-sm text-gray-500 font-bold">นักเรียนทั้งหมด</p><h3 class="text-2xl font-bold" id="dash-total">0</h3></div>
@@ -190,7 +205,6 @@
                     </div>
                 </div>
 
-                <!-- Table -->
                 <div class="overflow-x-auto rounded-xl shadow">
                     <table class="w-full text-left bg-white border-collapse">
                         <thead>
@@ -204,13 +218,11 @@
                             </tr>
                         </thead>
                         <tbody id="dash-tbody">
-                            <!-- Data will be populated here -->
-                            <tr><td colspan="5" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
+                            <tr><td colspan="6" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- ส่วนกราฟและส่งออก CSV -->
                 <div class="mt-12 border-t-2 border-gray-200 pt-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-6"><i class="fas fa-chart-line mr-2 text-brand-red"></i>สรุปสถิติและดาวน์โหลดข้อมูล (รายช่วงเวลา)</h3>
                     <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
@@ -237,7 +249,6 @@
                             <p class="text-gray-500 mt-3 font-medium">กำลังประมวลผลข้อมูลกราฟ...</p>
                         </div>
 
-                        <!-- พื้นที่สำหรับกราฟ -->
                         <div class="w-full relative hidden" style="height: 350px;" id="chart-container">
                             <canvas id="attendanceChart"></canvas>
                         </div>
@@ -248,7 +259,6 @@
             </div>
         </div>
 
-        <!-- Popup Overlay กลางจอ -->
         <div id="scan-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 text-center" id="scan-popup-card">
                 <div id="scan-popup-icon-container" class="mb-4">
@@ -259,7 +269,6 @@
             </div>
         </div>
 
-        <!-- Popup แก้ไขการมาเรียน -->
         <div id="edit-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="edit-popup-card">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
@@ -273,8 +282,7 @@
                 </div>
                 
                 <div class="overflow-y-auto flex-grow pr-2 space-y-2" id="edit-student-list">
-                    <!-- รายชื่อจะถูกเติมด้วย JavaScript -->
-                </div>
+                    </div>
                 
                 <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
                     <button onclick="closeEditPopup()" class="px-5 py-2 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">ยกเลิก</button>
@@ -285,7 +293,6 @@
 
     </main>
 
-    <!-- ปุ่ม Full Screen ลอยอยู่มุมขวาล่าง -->
     <button onclick="toggleFullScreen()" id="btn-fullscreen" class="fixed bottom-6 right-6 bg-gray-800 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-700 transition-all z-50 hover:scale-110">
         <i class="fas fa-expand text-xl" id="fullscreen-icon"></i>
     </button>
@@ -294,7 +301,6 @@
         <p class="text-sm">© 2026 ระบบสแกนใบหน้าเช็คชื่อนักเรียน โรงเรียนวัดแม่กะ.</p>
     </footer>
 
-    <!-- Scripts -->
     <script>
         // State Variables
         let allStudents = [];
@@ -305,11 +311,11 @@
         let isScanningActive = false;
         let currentFacingMode = 'user'; // 'user' = กล้องหน้า, 'environment' = กล้องหลัง
         
-        let reportDataRaw = null; // เก็บข้อมูลดิบสำหรับ Export
-        let attendanceChart = null; // ตัวแปรเก็บ Object ของ Chart.js
-        let currentDashboardSummary = null; // ตัวแปรเก็บข้อมูลรายวันส่งไปหน้า Edit
+        let reportDataRaw = null; 
+        let attendanceChart = null; 
+        let currentDashboardSummary = null; 
 
-        // Register Chart.js DataLabels plugin (แสดงตัวเลขบนกราฟ)
+        // Register Chart.js DataLabels plugin
         Chart.register(ChartDataLabels);
 
         // On Load
@@ -317,7 +323,6 @@
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('dash-date').value = todayStr;
             
-            // ตั้งค่า Default สำหรับช่วงเวลา (ย้อนหลัง 7 วัน)
             let lastWeek = new Date();
             lastWeek.setDate(lastWeek.getDate() - 6);
             document.getElementById('report-start').value = lastWeek.toISOString().split('T')[0];
@@ -369,7 +374,7 @@
 
             if(tabId === 'dashboard') {
                 loadDashboard();
-                if(!reportDataRaw) loadReportData(); // โหลดกราฟครั้งแรก
+                if(!reportDataRaw) loadReportData(); 
             }
         }
 
@@ -482,12 +487,14 @@
             isScanningActive = false;
             
             // รีเซ็ต UI หน้าสแกน
+            document.getElementById('scan-guide').classList.remove('active');
             document.getElementById('scanner-line').classList.add('hidden');
             document.getElementById('btn-start-scan').classList.remove('hidden');
             document.getElementById('btn-switch-scan').classList.add('hidden');
             document.getElementById('btn-stop-scan').classList.add('hidden');
             
             // รีเซ็ต UI หน้าลงทะเบียน
+            document.getElementById('reg-guide').classList.remove('active');
             document.getElementById('btn-start-reg').classList.remove('hidden');
             document.getElementById('btn-switch-reg').classList.add('hidden');
             document.getElementById('reg-video').classList.add('hidden');
@@ -536,7 +543,10 @@
             document.getElementById('btn-start-scan').classList.add('hidden');
             document.getElementById('btn-switch-scan').classList.remove('hidden');
             document.getElementById('btn-stop-scan').classList.remove('hidden');
+            
+            // โชว์เส้นสแกนและกรอบวงรี
             document.getElementById('scanner-line').classList.remove('hidden');
+            document.getElementById('scan-guide').classList.add('active');
             
             video.onplay = () => {
                 const displaySize = { width: video.videoWidth, height: video.videoHeight };
@@ -571,6 +581,7 @@
         async function handleSuccessfulScan(studentId) {
             isScanningActive = false; 
             document.getElementById('scanner-line').classList.add('hidden');
+            document.getElementById('scan-guide').classList.remove('active');
             
             const student = allStudents.find(s => s.id.toString() === studentId);
             
@@ -616,8 +627,12 @@
                 
                 setTimeout(() => {
                     popupOverlay.classList.add('hidden');
-                    document.getElementById('scanner-line').classList.remove('hidden');
-                    isScanningActive = true;
+                    // เปิดให้สแกนใหม่เมื่อ Popup ปิดลง
+                    if(currentStream) {
+                        document.getElementById('scanner-line').classList.remove('hidden');
+                        document.getElementById('scan-guide').classList.add('active');
+                        isScanningActive = true;
+                    }
                 }, 300); 
             }, 3000);
         }
@@ -656,6 +671,9 @@
             document.getElementById('btn-start-reg').classList.add('hidden');
             document.getElementById('btn-switch-reg').classList.remove('hidden');
             document.getElementById('btn-capture').disabled = false;
+            
+            // เปิดโชว์กรอบวงรี
+            document.getElementById('reg-guide').classList.add('active');
         }
 
         async function captureFace() {
@@ -789,7 +807,6 @@
             const thDate = `${dParts[2]}/${dParts[1]}/${parseInt(dParts[0])+543}`;
             document.getElementById('edit-popup-date').innerText = `ประจำวันที่: ${thDate}`;
             
-            // ใส่ Event Listener ให้กับปุ่มสวิตช์เปิดปิด
             document.querySelectorAll('.student-edit-checkbox').forEach(cb => {
                 cb.addEventListener('change', function() {
                     const label = document.getElementById(`status-label-${this.dataset.id}`);
@@ -803,7 +820,6 @@
                 });
             });
 
-            // เปิด Popup
             const overlay = document.getElementById('edit-popup-overlay');
             const card = document.getElementById('edit-popup-card');
             
@@ -814,7 +830,6 @@
             card.classList.add('scale-100');
         }
 
-        // ฟังก์ชันปิด Popup แก้ไข
         function closeEditPopup() {
             const overlay = document.getElementById('edit-popup-overlay');
             const card = document.getElementById('edit-popup-card');
@@ -828,7 +843,6 @@
             }, 300);
         }
 
-        // ฟังก์ชันบันทึกการแก้ไข
         async function saveEditAttendance() {
             const dateStr = document.getElementById('dash-date').value;
             const checkboxes = document.querySelectorAll('.student-edit-checkbox');
@@ -837,7 +851,6 @@
             const grade = checkboxes[0].dataset.grade;
             const updates = [];
             
-            // ดึงสถานะของทุกคนในชั้นที่เปิด Popup อยู่
             checkboxes.forEach(cb => {
                 updates.push({
                     id: cb.dataset.id,
@@ -861,7 +874,6 @@
 
             if(res.status === 'success') {
                 closeEditPopup();
-                // โหลดข้อมูล Dashboard และรายงานใหม่เพื่อให้ตารางอัปเดตทันที
                 loadDashboard(); 
                 if(reportDataRaw) loadReportData(); 
             } else {
@@ -869,7 +881,6 @@
             }
         }
 
-        // ฟังก์ชันสร้างและอัปเดตกราฟ / โหลดข้อมูลสำหรับ Export
         async function loadReportData() {
             const start = document.getElementById('report-start').value;
             const end = document.getElementById('report-end').value;
@@ -903,7 +914,6 @@
                 document.getElementById('chart-container').innerHTML = '<p class="text-center text-gray-500 py-10">ไม่มีข้อมูลการมาเรียนในช่วงเวลาที่เลือก</p>';
                 return;
             } else {
-                // กู้คืน canvas ถ้าถูกแทนที่ด้วย text ด้านบน
                 if(!document.getElementById('attendanceChart')) {
                     document.getElementById('chart-container').innerHTML = '<canvas id="attendanceChart"></canvas>';
                 }
@@ -920,7 +930,6 @@
                 return totalPresent;
             });
 
-            // ชุดสีสำหรับกราฟให้ดูสวยงาม
             const bgColors = [
                 'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 
                 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 
@@ -949,7 +958,6 @@
                                 label: function(context) { return `มาเรียน: ${context.parsed.y} คน`; }
                             }
                         },
-                        // ปลั๊กอินแสดงตัวเลขบนแท่งกราฟ
                         datalabels: {
                             color: '#333',
                             anchor: 'end',
@@ -963,7 +971,7 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grace: '15%', // เพิ่มช่องว่างด้านบนกราฟกันตัวเลขถูกตัด
+                            grace: '15%', 
                             title: { display: true, text: 'จำนวนนักเรียน (คน)', font: { family: 'Sarabun' } }
                         },
                         x: {
@@ -974,11 +982,9 @@
             });
         }
 
-        // ฟังก์ชันโหลดข้อมูลเป็นไฟล์ CSV ออกมา
         function downloadCSV() {
             if(!reportDataRaw) return;
             
-            // เพิ่ม BOM \uFEFF ให้ Excel อ่านภาษาไทยได้ถูกต้อง
             let csvContent = "\uFEFF"; 
             csvContent += "วันที่,ชั้น,ทั้งหมด,มา,ขาด,รายชื่อผู้ขาดเรียน\n";
 
@@ -987,12 +993,11 @@
 
             dates.forEach(d => {
                 const parts = d.split('-');
-                const thDate = `${parts[2]}/${parts[1]}/${parseInt(parts[0])+543}`; // ดด/ดด/ปปปป(ไทย)
+                const thDate = `${parts[2]}/${parts[1]}/${parseInt(parts[0])+543}`; 
                 
                 grades.forEach(grade => {
                     const info = reportDataRaw[d][grade];
                     if(info) {
-                        // ป้องกันปัญหาการตัดคอมม่า (,) ในไฟล์ CSV โดยเอาฟันหนู " ครอบรายชื่อ
                         const absentList = info.absentList.length > 0 ? `"${info.absentList.join(', ')}"` : "-";
                         csvContent += `${thDate},${grade},${info.total},${info.present},${info.absent},${absentList}\n`;
                     }
