@@ -227,6 +227,7 @@
                         <thead>
                             <tr class="bg-gray-100 text-gray-700">
                                 <th class="p-4 border-b font-bold text-center w-16">จัดการ</th>
+                                <th class="p-4 border-b font-bold text-center w-16">สรุป</th>
                                 <th class="p-4 border-b font-bold text-center w-20">ชั้น</th>
                                 <th class="p-4 border-b font-bold text-center">ทั้งหมด</th>
                                 <th class="p-4 border-b font-bold text-center text-green-600">มา</th>
@@ -236,7 +237,7 @@
                         </thead>
                         <tbody id="dash-tbody">
                             <!-- Data will be populated here -->
-                            <tr><td colspan="6" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
+                            <tr><td colspan="7" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -310,6 +311,28 @@
                 <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
                     <button onclick="closeEditPopup()" class="px-5 py-2 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">ยกเลิก</button>
                     <button id="btn-save-edit" onclick="saveEditAttendance()" class="px-5 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium shadow-md transition-colors flex items-center"><i class="fas fa-save mr-2"></i>บันทึกข้อมูล</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Popup สรุปภาพ -->
+        <div id="summary-popup-overlay" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-2 sm:p-4">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="summary-popup-card">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 shrink-0">
+                    <h2 class="text-2xl font-bold text-brand-red"><i class="fas fa-image mr-2"></i>ภาพสรุปการมาเรียน</h2>
+                    <button onclick="closeSummaryPopup()" class="text-gray-400 hover:text-red-500 transition-colors">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                
+                <!-- อัปเดตส่วนแสดงภาพให้รองรับการ Scroll และนำ style="aspect-ratio: 4/3;" ออก -->
+                <div class="overflow-y-auto overflow-x-hidden flex-grow flex justify-center items-start bg-gray-100 rounded-xl p-4 border border-gray-200">
+                    <canvas id="summary-canvas" class="w-full max-w-full h-auto bg-white shadow-md"></canvas>
+                </div>
+                
+                <div class="mt-6 flex justify-end space-x-3 shrink-0">
+                    <button onclick="closeSummaryPopup()" class="px-5 py-2 rounded-lg text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium transition-colors">ปิด</button>
+                    <button onclick="shareSummaryImage()" class="px-5 py-2 rounded-lg text-white bg-green-500 hover:bg-green-600 font-medium shadow-md transition-colors flex items-center"><i class="fas fa-share-alt mr-2"></i>แชร์รูปภาพ</button>
                 </div>
             </div>
         </div>
@@ -477,7 +500,7 @@
                 }
             });
             if (labeledDescriptors.length > 0) {
-                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.35); // ปรับ Threshold เป็น 0.3 (เข้มงวดสูงสุด)
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.35); // ปรับ Threshold เป็น 0.35 (เข้มงวดปานกลาง)
             } else {
                 faceMatcher = null;
             }
@@ -782,6 +805,11 @@
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 </td>
+                                <td class="p-4 text-center">
+                                    <button onclick="openSummaryPopup('${grade}')" class="bg-purple-100 text-purple-600 p-2 rounded-lg hover:bg-purple-200 transition-colors shadow-sm" title="สร้างรูปสรุป">
+                                        <i class="fas fa-image"></i>
+                                    </button>
+                                </td>
                                 <td class="p-4 text-center font-bold text-gray-700">${grade}</td>
                                 <td class="p-4 text-center">${data.total}</td>
                                 <td class="p-4 text-center text-green-600 font-medium">${data.present}</td>
@@ -792,7 +820,7 @@
                     }
                 });
                 
-                if(html === '') html = '<tr><td colspan="6" class="p-8 text-center text-gray-500">ไม่มีข้อมูลนักเรียนในระบบ</td></tr>';
+                if(html === '') html = '<tr><td colspan="7" class="p-8 text-center text-gray-500">ไม่มีข้อมูลนักเรียนในระบบ</td></tr>';
                 tbody.innerHTML = html;
                 
                 document.getElementById('dash-total').innerText = grandTotal;
@@ -906,6 +934,152 @@
             } else {
                 alert('เกิดข้อผิดพลาด: ' + res.message);
             }
+        }
+
+        // --- Summary Image Logic ---
+        
+        // ฟังก์ชันใหม่: ใช้คำนวณว่าบรรทัดรายชื่อเด็กที่ยาวๆ กินความสูงของรูปภาพไปเท่าไหร่
+        function wrapTextAndGetHeight(context, text, maxWidth, lineHeight) {
+            let words = text.split(' ');
+            let line = '';
+            let linesCount = 1;
+            for(let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = context.measureText(testLine);
+                if (metrics.width > maxWidth && n > 0) {
+                    line = words[n] + ' ';
+                    linesCount++;
+                } else {
+                    line = testLine;
+                }
+            }
+            return linesCount * lineHeight;
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            let words = text.split(' ');
+            let line = '';
+            for(let n = 0; n < words.length; n++) {
+              let testLine = line + words[n] + ' ';
+              let metrics = context.measureText(testLine);
+              let testWidth = metrics.width;
+              if (testWidth > maxWidth && n > 0) {
+                context.fillText(line, x, y);
+                line = words[n] + ' ';
+                y += lineHeight;
+              }
+              else {
+                line = testLine;
+              }
+            }
+            context.fillText(line, x, y);
+        }
+
+        function openSummaryPopup(grade) {
+            if (!currentDashboardSummary || !currentDashboardSummary[grade]) return;
+            const data = currentDashboardSummary[grade];
+            
+            const overlay = document.getElementById('summary-popup-overlay');
+            const card = document.getElementById('summary-popup-card');
+            
+            const canvas = document.getElementById('summary-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const absentText = data.absentList.length > 0 ? data.absentList.join(', ') : 'ไม่มีนักเรียนขาด';
+            
+            // คำนวณความสูงของข้อความก่อน
+            ctx.font = '36px Sarabun, sans-serif';
+            const textHeight = wrapTextAndGetHeight(ctx, absentText, 700, 50);
+            const totalHeight = 480 + textHeight + 40; // 480 คือเนื้อหาด้านบน, 40 คือขอบล่าง
+            
+            // ปรับความสูง Canvas ให้ยืดหยุ่นตามเนื้อหา (ยิ่งคนขาดเยอะ รูปจะยิ่งยาวขึ้น)
+            canvas.width = 800;
+            canvas.height = Math.max(600, totalHeight); // ความสูงอย่างน้อย 600px
+            
+            // Background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.textAlign = 'center';
+            
+            // Title
+            ctx.font = 'bold 44px Sarabun, sans-serif';
+            ctx.fillStyle = '#0000cc'; // Blue
+            ctx.fillText('รายงานจำนวนนักเรียนโรงเรียนวัดแม่กะ', 400, 100);
+            
+            // Grade & Total
+            ctx.font = '40px Sarabun, sans-serif';
+            ctx.fillStyle = '#000000'; // Black
+            ctx.fillText(`ระดับชั้น ${grade} ทั้งหมด ${data.total} คน`, 400, 200);
+            
+            // Present & Absent
+            ctx.fillText(`มา ${data.present} คน ขาด ${data.absent} คน`, 400, 300);
+            
+            // Absent List Title
+            ctx.font = 'bold 40px Sarabun, sans-serif';
+            ctx.fillStyle = '#cc0000'; // Red
+            ctx.fillText('รายชื่อผู้ขาดเรียน', 400, 400);
+            
+            // Absent List
+            ctx.font = '36px Sarabun, sans-serif';
+            ctx.fillStyle = '#000000'; // สีดำเพื่อให้รายชื่ออ่านง่าย
+            wrapText(ctx, absentText, 400, 460, 700, 50);
+            
+            // Show Popup
+            overlay.classList.remove('hidden');
+            void overlay.offsetWidth;
+            overlay.classList.remove('opacity-0');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+        }
+
+        function closeSummaryPopup() {
+            const overlay = document.getElementById('summary-popup-overlay');
+            const card = document.getElementById('summary-popup-card');
+            
+            overlay.classList.add('opacity-0');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+            
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
+        }
+
+        function shareSummaryImage() {
+            const canvas = document.getElementById('summary-canvas');
+            const dateStr = document.getElementById('dash-date').value;
+            const dParts = dateStr.split('-');
+            const thDate = `${dParts[2]}-${dParts[1]}-${parseInt(dParts[0])+543}`;
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `summary_${thDate}.png`, { type: 'image/png' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'สรุปการมาเรียน',
+                            text: 'สรุปการมาเรียนประจำวัน โรงเรียนวัดแม่กะ'
+                        });
+                    } catch (err) {
+                        console.log('Share canceled or failed:', err);
+                    }
+                } else {
+                    downloadSummaryImage(blob, file.name);
+                }
+            });
+        }
+
+        function downloadSummaryImage(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            alert('อุปกรณ์ของคุณไม่รองรับการแชร์โดยตรง ระบบได้ทำการดาวน์โหลดรูปภาพลงเครื่องแล้ว');
         }
 
         async function loadReportData() {
