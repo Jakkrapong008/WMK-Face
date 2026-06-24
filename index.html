@@ -294,7 +294,7 @@
         <!-- Popup แก้ไขการมาเรียน -->
         <div id="edit-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="edit-popup-card">
-                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 shrink-0">
                     <div>
                         <h2 id="edit-popup-title" class="text-2xl font-bold text-blue-600">แก้ไขการมาเรียน</h2>
                         <p id="edit-popup-date" class="text-gray-500 text-sm mt-1"></p>
@@ -304,11 +304,12 @@
                     </button>
                 </div>
                 
-                <div class="overflow-y-auto flex-grow pr-2 space-y-2" id="edit-student-list">
+                <!-- เติม min-h-0 เพื่อบังคับให้ Scroll ทำงาน -->
+                <div class="overflow-y-auto flex-grow min-h-0 pr-2 space-y-2" id="edit-student-list">
                     <!-- รายชื่อจะถูกเติมด้วย JavaScript -->
                 </div>
                 
-                <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
+                <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3 shrink-0">
                     <button onclick="closeEditPopup()" class="px-5 py-2 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">ยกเลิก</button>
                     <button id="btn-save-edit" onclick="saveEditAttendance()" class="px-5 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium shadow-md transition-colors flex items-center"><i class="fas fa-save mr-2"></i>บันทึกข้อมูล</button>
                 </div>
@@ -325,8 +326,8 @@
                     </button>
                 </div>
                 
-                <!-- อัปเดตส่วนแสดงภาพให้รองรับการ Scroll และนำ style="aspect-ratio: 4/3;" ออก -->
-                <div class="overflow-y-auto overflow-x-hidden flex-grow flex justify-center items-start bg-gray-100 rounded-xl p-4 border border-gray-200">
+                <!-- เติม min-h-0 เพื่อบังคับให้ Scroll ทำงานและไม่ดันปุ่มตกขอบจอ -->
+                <div class="overflow-y-auto overflow-x-hidden flex-grow min-h-0 flex justify-center items-start bg-gray-100 rounded-xl p-4 border border-gray-200">
                     <canvas id="summary-canvas" class="w-full max-w-full h-auto bg-white shadow-md"></canvas>
                 </div>
                 
