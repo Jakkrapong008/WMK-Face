@@ -316,28 +316,6 @@
             </div>
         </div>
 
-        <!-- Popup สรุปภาพ -->
-        <div id="summary-popup-overlay" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-2 sm:p-4">
-            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="summary-popup-card">
-                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 shrink-0">
-                    <h2 class="text-2xl font-bold text-brand-red"><i class="fas fa-image mr-2"></i>ภาพสรุปการมาเรียน</h2>
-                    <button onclick="closeSummaryPopup()" class="text-gray-400 hover:text-red-500 transition-colors">
-                        <i class="fas fa-times text-2xl"></i>
-                    </button>
-                </div>
-                
-                <!-- เติม min-h-0 เพื่อบังคับให้ Scroll ทำงานและไม่ดันปุ่มตกขอบจอ -->
-                <div class="overflow-y-auto overflow-x-hidden flex-grow min-h-0 flex justify-center items-start bg-gray-100 rounded-xl p-4 border border-gray-200">
-                    <canvas id="summary-canvas" class="w-full max-w-full h-auto bg-white shadow-md"></canvas>
-                </div>
-                
-                <div class="mt-6 flex justify-end space-x-3 shrink-0">
-                    <button onclick="closeSummaryPopup()" class="px-5 py-2 rounded-lg text-gray-600 bg-gray-200 hover:bg-gray-300 font-medium transition-colors">ปิด</button>
-                    <button onclick="shareSummaryImage()" class="px-5 py-2 rounded-lg text-white bg-green-500 hover:bg-green-600 font-medium shadow-md transition-colors flex items-center"><i class="fas fa-share-alt mr-2"></i>แชร์รูปภาพ</button>
-                </div>
-            </div>
-        </div>
-
     </main>
 
     <!-- ปุ่ม Full Screen ลอยอยู่มุมขวาล่าง -->
@@ -976,14 +954,12 @@
             context.fillText(line, x, y);
         }
 
-        function openSummaryPopup(grade) {
+        async function openSummaryPopup(grade) {
             if (!currentDashboardSummary || !currentDashboardSummary[grade]) return;
             const data = currentDashboardSummary[grade];
             
-            const overlay = document.getElementById('summary-popup-overlay');
-            const card = document.getElementById('summary-popup-card');
-            
-            const canvas = document.getElementById('summary-canvas');
+            // สร้าง Canvas แบบซ่อนไว้ (Off-screen) แทนการแสดง Pop-up
+            const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
             const absentText = data.absentList.length > 0 ? data.absentList.join(', ') : 'ไม่มีนักเรียนขาด';
@@ -991,96 +967,140 @@
             // คำนวณความสูงของข้อความก่อน
             ctx.font = '36px Sarabun, sans-serif';
             const textHeight = wrapTextAndGetHeight(ctx, absentText, 700, 50);
-            const totalHeight = 480 + textHeight + 40; // 480 คือเนื้อหาด้านบน, 40 คือขอบล่าง
+            const contentTopOffset = 120; // เผื่อพื้นที่ด้านบนให้ Logo
+            const totalHeight = 480 + contentTopOffset + textHeight + 40; // 480 คือเนื้อหาด้านบน, 40 คือขอบล่าง
             
-            // ปรับความสูง Canvas ให้ยืดหยุ่นตามเนื้อหา (ยิ่งคนขาดเยอะ รูปจะยิ่งยาวขึ้น)
+            // ปรับความสูง Canvas ให้ยืดหยุ่นตามเนื้อหา
             canvas.width = 800;
-            canvas.height = Math.max(600, totalHeight); // ความสูงอย่างน้อย 600px
+            canvas.height = Math.max(600 + contentTopOffset, totalHeight); // ความสูงอย่างน้อย
             
-            // Background
-            ctx.fillStyle = '#ffffff';
+            // Background (เปลี่ยนเป็นสีเทาอ่อน 20% ตามที่ต้องการ)
+            ctx.fillStyle = '#cccccc';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Load and Draw Logo
+            try {
+                const logoImg = new Image();
+                logoImg.crossOrigin = "Anonymous"; // ป้องกันปัญหา CORS
+                logoImg.src = 'https://img2.pic.in.th/logob0b7643db577ceee.png';
+                await new Promise((resolve, reject) => {
+                    logoImg.onload = resolve;
+                    logoImg.onerror = reject;
+                });
+                // วาด Logo ตรงกลางด้านบน (x=350, y=30, ขนาด 100x100)
+                ctx.drawImage(logoImg, 350, 30, 100, 100);
+            } catch (e) {
+                console.log('Logo load error:', e);
+            }
             
             ctx.textAlign = 'center';
             
             // Title
             ctx.font = 'bold 44px Sarabun, sans-serif';
             ctx.fillStyle = '#0000cc'; // Blue
-            ctx.fillText('รายงานจำนวนนักเรียนโรงเรียนวัดแม่กะ', 400, 100);
+            ctx.fillText('รายงานจำนวนนักเรียนโรงเรียนวัดแม่กะ', 400, 100 + contentTopOffset);
             
             // Grade & Total
             ctx.font = '40px Sarabun, sans-serif';
             ctx.fillStyle = '#000000'; // Black
-            ctx.fillText(`ระดับชั้น ${grade} ทั้งหมด ${data.total} คน`, 400, 200);
+            ctx.fillText(`ระดับชั้น ${grade} ทั้งหมด ${data.total} คน`, 400, 200 + contentTopOffset);
             
             // Present & Absent
-            ctx.fillText(`มา ${data.present} คน ขาด ${data.absent} คน`, 400, 300);
+            ctx.fillText(`มา ${data.present} คน ขาด ${data.absent} คน`, 400, 300 + contentTopOffset);
             
             // Absent List Title
             ctx.font = 'bold 40px Sarabun, sans-serif';
             ctx.fillStyle = '#cc0000'; // Red
-            ctx.fillText('รายชื่อผู้ขาดเรียน', 400, 400);
+            ctx.fillText('รายชื่อผู้ขาดเรียน', 400, 400 + contentTopOffset);
             
             // Absent List
             ctx.font = '36px Sarabun, sans-serif';
             ctx.fillStyle = '#000000'; // สีดำเพื่อให้รายชื่ออ่านง่าย
-            wrapText(ctx, absentText, 400, 460, 700, 50);
+            wrapText(ctx, absentText, 400, 460 + contentTopOffset, 700, 50);
             
-            // Show Popup
-            overlay.classList.remove('hidden');
-            void overlay.offsetWidth;
-            overlay.classList.remove('opacity-0');
-            card.classList.remove('scale-95');
-            card.classList.add('scale-100');
-        }
-
-        function closeSummaryPopup() {
-            const overlay = document.getElementById('summary-popup-overlay');
-            const card = document.getElementById('summary-popup-card');
+            // แปลง Canvas เป็น Data URL (base64 image)
+            const dataUrl = canvas.toDataURL('image/png');
             
-            overlay.classList.add('opacity-0');
-            card.classList.remove('scale-100');
-            card.classList.add('scale-95');
-            
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-            }, 300);
-        }
-
-        function shareSummaryImage() {
-            const canvas = document.getElementById('summary-canvas');
+            // สร้างชื่อไฟล์
             const dateStr = document.getElementById('dash-date').value;
             const dParts = dateStr.split('-');
-            const thDate = `${dParts[2]}-${dParts[1]}-${parseInt(dParts[0])+543}`;
-            
-            canvas.toBlob(async (blob) => {
-                const file = new File([blob], `summary_${thDate}.png`, { type: 'image/png' });
-                
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try {
-                        await navigator.share({
-                            files: [file],
-                            title: 'สรุปการมาเรียน',
-                            text: 'สรุปการมาเรียนประจำวัน โรงเรียนวัดแม่กะ'
-                        });
-                    } catch (err) {
-                        console.log('Share canceled or failed:', err);
-                    }
-                } else {
-                    downloadSummaryImage(blob, file.name);
-                }
-            });
-        }
+            const thDate = `${dParts[2]}/${dParts[1]}/${parseInt(dParts[0])+543}`;
+            const filename = `summary_${thDate}.png`;
 
-        function downloadSummaryImage(blob, filename) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            alert('อุปกรณ์ของคุณไม่รองรับการแชร์โดยตรง ระบบได้ทำการดาวน์โหลดรูปภาพลงเครื่องแล้ว');
+            // เปิดหน้าต่าง/แท็บใหม่
+            const newWin = window.open('', '_blank');
+            if(!newWin) {
+                alert('กรุณาอนุญาตให้เบราว์เซอร์เปิดหน้าต่างใหม่ (Allow Pop-ups) ก่อนใช้งานฟังก์ชันนี้');
+                return;
+            }
+
+            // เขียน HTML หน้าใหม่ที่ประกอบด้วย รูปภาพ และปุ่มแชร์ + ดาวน์โหลด
+            newWin.document.write(`
+                <!DOCTYPE html>
+                <html lang="th">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>ภาพสรุปการมาเรียน ${grade}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                    <style>
+                        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; margin: 0; }
+                        .image-container { max-width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; margin-bottom: 24px; border: 2px solid #ddd; }
+                        img { width: 100%; max-width: 800px; height: auto; display: block; }
+                    </style>
+                </head>
+                <body>
+                    <div class="image-container">
+                        <img src="${dataUrl}" alt="Summary Image">
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-4 mt-2">
+                        <button onclick="downloadImage()" class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-full font-bold shadow-lg transition-all text-lg flex items-center">
+                            <i class="fas fa-download mr-3"></i>ดาวน์โหลด
+                        </button>
+                        <button onclick="shareImage()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-bold shadow-lg transition-all text-lg flex items-center">
+                            <i class="fas fa-share-alt mr-3"></i>แชร์รูปภาพ
+                        </button>
+                    </div>
+
+                    <script>
+                        function downloadImage() {
+                            const a = document.createElement('a');
+                            a.href = "${dataUrl}";
+                            a.download = "${filename}";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        }
+
+                        async function shareImage() {
+                            const dataUrl = "${dataUrl}";
+                            const filename = "${filename}";
+                            
+                            try {
+                                const res = await fetch(dataUrl);
+                                const blob = await res.blob();
+                                const file = new File([blob], filename, { type: 'image/png' });
+
+                                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                    await navigator.share({
+                                        files: [file],
+                                        title: 'สรุปการมาเรียน',
+                                        text: 'สรุปการมาเรียนประจำวัน โรงเรียนวัดแม่กะ'
+                                    });
+                                } else {
+                                    alert('อุปกรณ์ของคุณไม่รองรับการแชร์โดยตรง กรุณากดปุ่มดาวน์โหลดแทนครับ');
+                                }
+                            } catch (err) {
+                                console.log('Share canceled or failed:', err);
+                            }
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            newWin.document.close();
         }
 
         async function loadReportData() {
