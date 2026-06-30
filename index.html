@@ -714,7 +714,7 @@
             popupTitle.innerText = "กำลังบันทึกข้อมูล...";
             popupTitle.className = "text-3xl font-bold mb-4 text-blue-600";
             
-            // ส่งข้อมูลชั้นและชื่อไปให้ Backend โดยตรง (ประหยัดเวลาการประมวลผลที่หลังบ้าน)
+            // ส่งข้อมูลชั้นและชื่อไปให้ Backend โดยตรง
             const student = allStudents.find(s => s.id.toString() === tempScannedStudentId.toString());
             
             const payload = { 
@@ -726,7 +726,7 @@
 
             let res = await fetchAPI(payload);
             
-            // ระบบ Auto-Retry กรณีคิวเต็ม (Lock) ให้ระบบลองส่งซ้ำให้เอง 1 ครั้ง
+            // ระบบ Auto-Retry กรณีคิวเต็ม (Lock)
             if(res.status === 'error' && (res.message.includes('คิว') || res.message.includes('Lock'))) {
                 popupTitle.innerText = "กำลังจัดคิวบันทึก...";
                 await new Promise(resolve => setTimeout(resolve, 1000));
