@@ -9,9 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Load face-api.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Load Chart.js and Datalabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
@@ -53,11 +51,11 @@
             left: 50%;
             transform: translate(-50%, -50%);
             border: 4px dashed rgba(255, 204, 0, 0.8);
-            border-radius: 50%; /* ทำให้เป็นวงรี */
-            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.55); /* ทำพื้นหลังรอบนอกให้มืดลง */
+            border-radius: 50%;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.55);
             pointer-events: none;
             z-index: 15;
-            display: none; /* ซ่อนไว้ก่อน จะโชว์ตอนเปิดกล้อง */
+            display: none;
         }
         .face-guide-scan { width: 220px; height: 300px; max-width: 55%; max-height: 70%; }
         .face-guide-reg { width: 150px; height: 200px; max-width: 60%; max-height: 80%; }
@@ -88,7 +86,6 @@
 </head>
 <body class="min-h-screen text-gray-800 flex flex-col relative pb-20">
 
-    <!-- Header -->
     <header class="bg-brand-red text-white shadow-lg relative overflow-hidden">
         <div class="absolute inset-0 bg-brand-redlight opacity-30 transform -skew-y-3 origin-top-left z-0"></div>
         <div class="max-w-6xl mx-auto px-4 py-4 relative z-10 flex flex-col sm:flex-row items-center justify-between">
@@ -99,7 +96,6 @@
                     <p class="text-sm font-light">ระบบสแกนใบหน้าเช็คชื่อนักเรียนอัจฉริยะ</p>
                 </div>
             </div>
-            <!-- Navigation -->
             <nav class="flex space-x-2 bg-white/10 p-1 rounded-xl overflow-x-auto">
                 <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-brand-yellow text-brand-red shadow-md whitespace-nowrap"><i class="fas fa-camera mr-2"></i>สแกนใบหน้า</button>
                 <button onclick="switchTab('register')" id="nav-register" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/20 text-white whitespace-nowrap"><i class="fas fa-user-plus mr-2"></i>ลงทะเบียน</button>
@@ -108,16 +104,13 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-grow max-w-6xl mx-auto px-4 py-8 w-full">
         
-        <!-- Loading Overlay -->
         <div id="global-loading" class="fixed inset-0 bg-white/90 z-[70] flex flex-col items-center justify-center hidden">
             <i class="fas fa-spinner fa-spin text-5xl text-brand-red mb-4"></i>
             <h2 class="text-xl font-bold text-brand-red" id="loading-text">กำลังโหลด...</h2>
         </div>
 
-        <!-- TAB 1: สแกนใบหน้า -->
         <div id="tab-scan" class="tab-content active">
             <div class="glass-panel p-6 sm:p-8 text-center max-w-3xl mx-auto border-t-4 border-brand-red">
                 <h2 class="text-2xl font-bold mb-2 gradient-text"><i class="fas fa-face-viewfinder mr-2"></i>สแกนใบหน้าเช็คชื่อเข้าเรียน</h2>
@@ -139,7 +132,6 @@
             </div>
         </div>
 
-        <!-- TAB 2: ลงทะเบียนใบหน้า -->
         <div id="tab-register" class="tab-content">
             <div class="glass-panel p-6 sm:p-8 max-w-4xl mx-auto border-t-4 border-brand-yellow">
                 <h2 class="text-2xl font-bold mb-2 text-center text-gray-800"><i class="fas fa-id-card mr-2 text-brand-yellow"></i>เพิ่มข้อมูลใบหน้านักเรียน</h2>
@@ -186,7 +178,6 @@
             </div>
         </div>
 
-        <!-- TAB 3: สารสนเทศการมาเรียน -->
         <div id="tab-dashboard" class="tab-content">
             <div class="glass-panel p-6 sm:p-8 border-t-4 border-blue-500">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
@@ -198,7 +189,6 @@
                     </div>
                 </div>
 
-                <!-- Summary Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                     <div class="bg-white p-4 rounded-xl shadow border-l-4 border-gray-500 flex items-center justify-between">
                         <div><p class="text-sm text-gray-500 font-bold">นักเรียนทั้งหมด</p><h3 class="text-2xl font-bold" id="dash-total">0</h3></div>
@@ -214,7 +204,6 @@
                     </div>
                 </div>
 
-                <!-- Table -->
                 <div class="overflow-x-auto rounded-xl shadow">
                     <table class="w-full text-left bg-white border-collapse min-w-[700px]">
                         <thead>
@@ -234,7 +223,6 @@
                     </table>
                 </div>
 
-                <!-- ส่วนกราฟและส่งออก CSV -->
                 <div class="mt-12 border-t-2 border-gray-200 pt-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-6"><i class="fas fa-chart-line mr-2 text-brand-red"></i>สรุปสถิติและดาวน์โหลดข้อมูล (รายช่วงเวลา)</h3>
                     <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
@@ -275,7 +263,6 @@
                             <p class="text-gray-500 mt-3 font-medium">กำลังประมวลผลข้อมูลกราฟ...</p>
                         </div>
 
-                        <!-- พื้นที่สำหรับกราฟ -->
                         <div class="w-full relative hidden" style="height: 350px;" id="chart-container">
                             <canvas id="attendanceChart"></canvas>
                         </div>
@@ -283,7 +270,6 @@
                     </div>
                 </div>
                 
-                <!-- ปุ่มส่งแจ้งเตือนด่วน (เพิ่มใหม่) -->
                 <div class="mt-8 pt-8 border-t-2 border-gray-200 flex justify-center">
                      <button onclick="promptLineNotify()" class="bg-[#00B900] hover:bg-[#009900] text-white px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg">
                         <i class="fab fa-line mr-2 text-2xl"></i> ส่งแจ้งเตือนรายงานเข้ากลุ่ม LINE ทันที
@@ -293,7 +279,6 @@
             </div>
         </div>
 
-        <!-- Popup ระหว่างสแกนหน้า (ใหญ่ขึ้นและมีปุ่มให้กด) -->
         <div id="scan-popup-overlay" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-8 max-w-xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 text-center" id="scan-popup-card">
                 <div id="scan-popup-icon-container" class="mb-4">
@@ -313,7 +298,6 @@
             </div>
         </div>
 
-        <!-- Popup แก้ไขการมาเรียน (อัปเดตแบบ Dropdown ลากิจ/ลาป่วย) -->
         <div id="edit-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="edit-popup-card">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 shrink-0">
@@ -327,8 +311,7 @@
                 </div>
                 
                 <div class="overflow-y-auto flex-grow min-h-0 pr-2 space-y-3" id="edit-student-list">
-                    <!-- รายชื่อจะถูกเติมด้วย JavaScript แบบใหม่ -->
-                </div>
+                    </div>
                 
                 <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3 shrink-0">
                     <button onclick="closeEditPopup()" class="px-5 py-3 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">ยกเลิก</button>
@@ -339,7 +322,6 @@
             </div>
         </div>
 
-        <!-- Popup แสดงรูปสรุปการมาเรียน -->
         <div id="summary-popup-overlay" class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-4 sm:p-6 max-w-2xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[95vh] flex flex-col relative" id="summary-popup-card">
                 <button onclick="closeSummaryPopup()" class="absolute -top-4 -right-4 bg-gray-800 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center hover:bg-red-500 transition-colors z-10 border-2 border-white">
@@ -373,7 +355,6 @@
 
     </main>
 
-    <!-- ปุ่ม Full Screen -->
     <button onclick="toggleFullScreen()" id="btn-fullscreen" class="fixed bottom-6 right-6 bg-gray-800 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-700 transition-all z-50 hover:scale-110">
         <i class="fas fa-expand text-xl" id="fullscreen-icon"></i>
     </button>
@@ -382,7 +363,6 @@
         <p class="text-sm">© 2026 ระบบสแกนใบหน้าเช็คชื่อนักเรียน โรงเรียนวัดแม่กะ.</p>
     </footer>
 
-    <!-- Scripts -->
     <script>
         // Custom Alert Function
         function customAlert(msg) {
@@ -672,7 +652,7 @@
             document.getElementById('scan-guide').classList.remove('active');
             
             const student = allStudents.find(s => s.id.toString() === studentId);
-            tempScannedStudentId = studentId; // เก็บ ID ชั่วคราวไว้รอการยืนยัน
+            tempScannedStudentId = studentId; 
             
             const popupOverlay = document.getElementById('scan-popup-overlay');
             const popupCard = document.getElementById('scan-popup-card');
@@ -681,24 +661,20 @@
             const popupName = document.getElementById('scan-popup-name');
             const btnContainer = document.getElementById('scan-popup-buttons');
             
-            // เซ็ตข้อมูลเริ่มต้น
             popupIcon.className = "fas fa-question-circle text-8xl text-blue-500";
             popupTitle.innerText = "ตรวจสอบรายชื่อ";
             popupTitle.className = "text-3xl font-bold mb-4 text-blue-600";
             popupName.innerText = student.fullName;
             popupName.className = "text-4xl font-bold text-gray-800 mb-8 py-4 bg-gray-100 rounded-xl";
             
-            // เปิดปุ่มกดยืนยัน/ยกเลิก
             btnContainer.classList.remove('hidden');
             
-            // โชว์หน้าต่าง
             popupOverlay.classList.remove('hidden');
             void popupOverlay.offsetWidth; 
             popupOverlay.classList.remove('opacity-0');
             popupCard.classList.remove('scale-95');
             popupCard.classList.add('scale-100');
             
-            // อ่านชื่อถามเพื่อความมั่นใจ
             speakText(`${student.firstName} ใช่หรือไม่`);
         }
 
@@ -738,7 +714,24 @@
             popupTitle.innerText = "กำลังบันทึกข้อมูล...";
             popupTitle.className = "text-3xl font-bold mb-4 text-blue-600";
             
-            const res = await fetchAPI({ action: 'recordAttendance', studentId: tempScannedStudentId });
+            // ส่งข้อมูลชั้นและชื่อไปให้ Backend โดยตรง (ประหยัดเวลาการประมวลผลที่หลังบ้าน)
+            const student = allStudents.find(s => s.id.toString() === tempScannedStudentId.toString());
+            
+            const payload = { 
+                action: 'recordAttendance', 
+                studentId: tempScannedStudentId,
+                grade: student.grade,
+                fullName: student.fullName
+            };
+
+            let res = await fetchAPI(payload);
+            
+            // ระบบ Auto-Retry กรณีคิวเต็ม (Lock) ให้ระบบลองส่งซ้ำให้เอง 1 ครั้ง
+            if(res.status === 'error' && (res.message.includes('คิว') || res.message.includes('Lock'))) {
+                popupTitle.innerText = "กำลังจัดคิวบันทึก...";
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                res = await fetchAPI(payload);
+            }
             
             if(res.status === 'success') {
                 popupIcon.className = "fas fa-check-circle text-8xl text-green-500";
@@ -913,13 +906,12 @@
             const studentsInGrade = allStudents.filter(s => s.grade === grade);
             const attMap = currentDashboardSummary[grade].attMap || {}; 
             
-            // รีเซ็ตค่าการเปลี่ยนแปลง
             initialStatusMap = {};
             let html = '';
             
             studentsInGrade.forEach(s => {
                 const currentStatus = attMap[s.id.toString()] || 'ขาดเรียน';
-                initialStatusMap[s.id] = currentStatus; // เก็บค่าดั้งเดิมไว้
+                initialStatusMap[s.id] = currentStatus;
                 
                 const isOther = !['มาเรียน', 'ขาดเรียน', 'ลากิจ', 'ลาป่วย'].includes(currentStatus);
                 const displaySelectVal = isOther ? 'อื่นๆ' : currentStatus;
@@ -997,10 +989,9 @@
                 let finalStatus = sel.value;
                 if(finalStatus === 'อื่นๆ') {
                     const otherInput = document.getElementById(`other-input-${id}`).value.trim();
-                    finalStatus = otherInput || 'ขาดเรียน'; // ถ้าไม่ได้พิมพ์ถือว่าขาด
+                    finalStatus = otherInput || 'ขาดเรียน'; 
                 }
                 
-                // ตรวจสอบว่าเปลี่ยนค่าไปจากเดิมหรือไม่
                 if (initialStatusMap[id] !== finalStatus) {
                     updates.push({ id: id, status: finalStatus });
                 }
@@ -1008,7 +999,7 @@
 
             if(updates.length === 0) {
                 closeEditPopup();
-                return; // ไม่ต้องยิง API ถ้าไม่มีคนเปลี่ยนค่า
+                return; 
             }
 
             const btn = document.getElementById('btn-save-edit');
@@ -1170,7 +1161,7 @@
 
             if(res.status === 'success') {
                 reportDataRaw = res.summary; 
-                updateReportView(); // สร้างกราฟตามระดับชั้นที่เลือก
+                updateReportView(); 
                 document.getElementById('chart-container').classList.remove('hidden');
                 document.getElementById('btn-download-csv').classList.remove('hidden');
             } else {
@@ -1178,7 +1169,6 @@
             }
         }
 
-        // ฟังก์ชันใหม่: อัปเดตกราฟทันทีเมื่อเปลี่ยน Dropdown (ไม่ต้องยิง API ใหม่)
         function updateReportView() {
             if(!reportDataRaw) return;
             renderChart(reportDataRaw);
@@ -1189,7 +1179,7 @@
             if (attendanceChart) attendanceChart.destroy();
 
             const dates = Object.keys(data).sort();
-            const selectedGrade = document.getElementById('report-grade').value; // อ่านค่าชั้นที่ต้องการแสดงผล
+            const selectedGrade = document.getElementById('report-grade').value; 
 
             if(dates.length === 0) {
                 document.getElementById('chart-container').innerHTML = '<p class="text-center text-gray-500 py-10">ไม่มีข้อมูลการมาเรียนในช่วงเวลาที่เลือก</p>';
@@ -1205,7 +1195,6 @@
                 return `${parts[2]}/${parts[1]}/${parseInt(parts[0])+543}`;
             });
             
-            // กรองจำนวนนักเรียนตามชั้นที่เลือก
             const presentData = dates.map(d => {
                 let totalPresent = 0;
                 if(selectedGrade === 'all') {
@@ -1258,12 +1247,11 @@
             });
         }
 
-        // ปรับปรุงฟังก์ชันการโหลด CSV ให้เสถียรขึ้นและกรองตามชั้น
         function downloadCSV() {
             if(!reportDataRaw) return;
             
             const selectedGrade = document.getElementById('report-grade').value;
-            let csvContent = "\uFEFF"; // สำหรับรองรับภาษาไทยใน Excel
+            let csvContent = "\uFEFF"; 
             csvContent += "วันที่,ชั้น,ทั้งหมด,มา,ขาด/ลา,หมายเหตุ\n";
 
             const dates = Object.keys(reportDataRaw).sort();
@@ -1285,7 +1273,6 @@
             const fileNameTitle = selectedGrade === 'all' ? 'รวมทุกชั้น' : `เฉพาะชั้น_${selectedGrade}`;
             const fileName = `รายงานการมาเรียน_${fileNameTitle}.csv`;
 
-            // วิธีดาวน์โหลดแบบเสถียร (ใช้ Data URI หรือ Blob)
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             try {
                 const link = document.createElement("a");
@@ -1297,7 +1284,6 @@
                 link.click();
                 document.body.removeChild(link);
             } catch (err) {
-                // Fallback กรณีเปิดใน iframe หรือ browser ที่ block 
                 const reader = new FileReader();
                 reader.onload = function() {
                    const a = document.createElement('a');
@@ -1311,12 +1297,10 @@
             }
         }
 
-        // ฟังก์ชันสำหรับการส่งแจ้งเตือน LINE ทันที
         function promptLineNotify() {
              const password = prompt("กรุณากรอกรหัสผ่านเพื่อส่งแจ้งเตือนไปยังกลุ่ม LINE:", "");
              
              if (password === null) {
-                 // ผู้ใช้กดยกเลิก
                  return;
              }
              
