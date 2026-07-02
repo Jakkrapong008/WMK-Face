@@ -9,7 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Load face-api.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Load Chart.js and Datalabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
@@ -86,6 +88,7 @@
 </head>
 <body class="min-h-screen text-gray-800 flex flex-col relative pb-20">
 
+    <!-- Header -->
     <header class="bg-brand-red text-white shadow-lg relative overflow-hidden">
         <div class="absolute inset-0 bg-brand-redlight opacity-30 transform -skew-y-3 origin-top-left z-0"></div>
         <div class="max-w-6xl mx-auto px-4 py-4 relative z-10 flex flex-col sm:flex-row items-center justify-between">
@@ -96,6 +99,7 @@
                     <p class="text-sm font-light">ระบบสแกนใบหน้าเช็คชื่อนักเรียนอัจฉริยะ</p>
                 </div>
             </div>
+            <!-- Navigation -->
             <nav class="flex space-x-2 bg-white/10 p-1 rounded-xl overflow-x-auto">
                 <button onclick="switchTab('scan')" id="nav-scan" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all bg-brand-yellow text-brand-red shadow-md whitespace-nowrap"><i class="fas fa-camera mr-2"></i>สแกนใบหน้า</button>
                 <button onclick="switchTab('register')" id="nav-register" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/20 text-white whitespace-nowrap"><i class="fas fa-user-plus mr-2"></i>ลงทะเบียน</button>
@@ -104,13 +108,16 @@
         </div>
     </header>
 
+    <!-- Main Content -->
     <main class="flex-grow max-w-6xl mx-auto px-4 py-8 w-full">
         
+        <!-- Loading Overlay -->
         <div id="global-loading" class="fixed inset-0 bg-white/90 z-[70] flex flex-col items-center justify-center hidden">
             <i class="fas fa-spinner fa-spin text-5xl text-brand-red mb-4"></i>
             <h2 class="text-xl font-bold text-brand-red" id="loading-text">กำลังโหลด...</h2>
         </div>
 
+        <!-- TAB 1: สแกนใบหน้า -->
         <div id="tab-scan" class="tab-content active">
             <div class="glass-panel p-6 sm:p-8 text-center max-w-3xl mx-auto border-t-4 border-brand-red">
                 <h2 class="text-2xl font-bold mb-2 gradient-text"><i class="fas fa-face-viewfinder mr-2"></i>สแกนใบหน้าเช็คชื่อเข้าเรียน</h2>
@@ -132,6 +139,7 @@
             </div>
         </div>
 
+        <!-- TAB 2: ลงทะเบียนใบหน้า -->
         <div id="tab-register" class="tab-content">
             <div class="glass-panel p-6 sm:p-8 max-w-4xl mx-auto border-t-4 border-brand-yellow">
                 <h2 class="text-2xl font-bold mb-2 text-center text-gray-800"><i class="fas fa-id-card mr-2 text-brand-yellow"></i>เพิ่มข้อมูลใบหน้านักเรียน</h2>
@@ -178,6 +186,7 @@
             </div>
         </div>
 
+        <!-- TAB 3: สารสนเทศการมาเรียน -->
         <div id="tab-dashboard" class="tab-content">
             <div class="glass-panel p-6 sm:p-8 border-t-4 border-blue-500">
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
@@ -189,6 +198,7 @@
                     </div>
                 </div>
 
+                <!-- Summary Cards -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                     <div class="bg-white p-4 rounded-xl shadow border-l-4 border-gray-500 flex items-center justify-between">
                         <div><p class="text-sm text-gray-500 font-bold">นักเรียนทั้งหมด</p><h3 class="text-2xl font-bold" id="dash-total">0</h3></div>
@@ -204,6 +214,7 @@
                     </div>
                 </div>
 
+                <!-- Table -->
                 <div class="overflow-x-auto rounded-xl shadow">
                     <table class="w-full text-left bg-white border-collapse min-w-[700px]">
                         <thead>
@@ -223,6 +234,7 @@
                     </table>
                 </div>
 
+                <!-- ส่วนกราฟและส่งออก CSV -->
                 <div class="mt-12 border-t-2 border-gray-200 pt-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-6"><i class="fas fa-chart-line mr-2 text-brand-red"></i>สรุปสถิติและดาวน์โหลดข้อมูล (รายช่วงเวลา)</h3>
                     <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
@@ -263,6 +275,7 @@
                             <p class="text-gray-500 mt-3 font-medium">กำลังประมวลผลข้อมูลกราฟ...</p>
                         </div>
 
+                        <!-- พื้นที่สำหรับกราฟ -->
                         <div class="w-full relative hidden" style="height: 350px;" id="chart-container">
                             <canvas id="attendanceChart"></canvas>
                         </div>
@@ -270,15 +283,20 @@
                     </div>
                 </div>
                 
-                <div class="mt-8 pt-8 border-t-2 border-gray-200 flex justify-center">
-                     <button onclick="promptLineNotify()" class="bg-[#00B900] hover:bg-[#009900] text-white px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg">
+                <!-- ปุ่มส่งแจ้งเตือนด่วน & บันทึกครูเวร -->
+                <div class="mt-8 pt-8 border-t-2 border-gray-200 flex flex-col items-center justify-center gap-4">
+                     <button onclick="promptLineNotify()" class="bg-[#00B900] hover:bg-[#009900] text-white w-full max-w-md px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg">
                         <i class="fab fa-line mr-2 text-2xl"></i> ส่งแจ้งเตือนรายงานเข้ากลุ่ม LINE ทันที
                     </button>
+                    <a href="https://wmk-face2.vercel.app/" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white w-full max-w-md px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg">
+                        <i class="fas fa-clipboard-check mr-2 text-2xl"></i> บันทึกข้อมูลครูเวรและการอบรม
+                    </a>
                 </div>
 
             </div>
         </div>
 
+        <!-- Popup ระหว่างสแกนหน้า -->
         <div id="scan-popup-overlay" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-8 max-w-xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 text-center" id="scan-popup-card">
                 <div id="scan-popup-icon-container" class="mb-4">
@@ -298,6 +316,7 @@
             </div>
         </div>
 
+        <!-- Popup แก้ไขการมาเรียน -->
         <div id="edit-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="edit-popup-card">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 shrink-0">
@@ -311,17 +330,24 @@
                 </div>
                 
                 <div class="overflow-y-auto flex-grow min-h-0 pr-2 space-y-3" id="edit-student-list">
-                    </div>
+                    <!-- รายชื่อจะถูกเติมด้วย JavaScript แบบใหม่ -->
+                </div>
                 
-                <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3 shrink-0">
-                    <button onclick="closeEditPopup()" class="px-5 py-3 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">ยกเลิก</button>
-                    <button id="btn-save-edit" onclick="saveEditAttendance()" class="px-5 py-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium shadow-md transition-colors flex items-center">
-                        <i class="fas fa-save mr-2"></i>บันทึกการเปลี่ยนแปลง
+                <div class="mt-6 pt-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+                    <button onclick="markAllPresent()" class="w-full sm:w-auto px-4 py-3 rounded-lg text-white bg-green-500 hover:bg-green-600 font-medium shadow-md transition-colors flex items-center justify-center">
+                        <i class="fas fa-check-double mr-2"></i> มาเรียนทั้งหมด
                     </button>
+                    <div class="w-full sm:w-auto flex space-x-3 justify-end">
+                        <button onclick="closeEditPopup()" class="flex-1 sm:flex-none px-5 py-3 rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium transition-colors">ยกเลิก</button>
+                        <button id="btn-save-edit" onclick="saveEditAttendance()" class="flex-1 sm:flex-none px-5 py-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium shadow-md transition-colors flex items-center justify-center">
+                            <i class="fas fa-save mr-2"></i>บันทึกการเปลี่ยนแปลง
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Popup แสดงรูปสรุปการมาเรียน -->
         <div id="summary-popup-overlay" class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-4 sm:p-6 max-w-2xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[95vh] flex flex-col relative" id="summary-popup-card">
                 <button onclick="closeSummaryPopup()" class="absolute -top-4 -right-4 bg-gray-800 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center hover:bg-red-500 transition-colors z-10 border-2 border-white">
@@ -355,6 +381,7 @@
 
     </main>
 
+    <!-- ปุ่ม Full Screen -->
     <button onclick="toggleFullScreen()" id="btn-fullscreen" class="fixed bottom-6 right-6 bg-gray-800 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-700 transition-all z-50 hover:scale-110">
         <i class="fas fa-expand text-xl" id="fullscreen-icon"></i>
     </button>
@@ -363,6 +390,7 @@
         <p class="text-sm">© 2026 ระบบสแกนใบหน้าเช็คชื่อนักเรียน โรงเรียนวัดแม่กะ.</p>
     </footer>
 
+    <!-- Scripts -->
     <script>
         // Custom Alert Function
         function customAlert(msg) {
@@ -714,7 +742,7 @@
             popupTitle.innerText = "กำลังบันทึกข้อมูล...";
             popupTitle.className = "text-3xl font-bold mb-4 text-blue-600";
             
-            // ส่งข้อมูลชั้นและชื่อไปให้ Backend โดยตรง
+            // ส่งข้อมูลชั้นและชื่อไปให้ Backend โดยตรง (ประหยัดเวลาการประมวลผลที่หลังบ้าน)
             const student = allStudents.find(s => s.id.toString() === tempScannedStudentId.toString());
             
             const payload = { 
@@ -726,7 +754,7 @@
 
             let res = await fetchAPI(payload);
             
-            // ระบบ Auto-Retry กรณีคิวเต็ม (Lock)
+            // ระบบ Auto-Retry กรณีคิวเต็ม (Lock) ให้ระบบลองส่งซ้ำให้เอง 1 ครั้ง
             if(res.status === 'error' && (res.message.includes('คิว') || res.message.includes('Lock'))) {
                 popupTitle.innerText = "กำลังจัดคิวบันทึก...";
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -974,6 +1002,19 @@
             card.classList.remove('scale-100');
             card.classList.add('scale-95');
             setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+        }
+
+        // ฟังก์ชันใหม่: มาเรียนทั้งหมด
+        function markAllPresent() {
+            if(confirm('ต้องการเช็ค "มาเรียน" ให้นักเรียนทุกคนในห้องนี้ใช่หรือไม่?')) {
+                const selects = document.querySelectorAll('.student-status-select');
+                selects.forEach(sel => {
+                    sel.value = 'มาเรียน';
+                    toggleOtherInput(sel.dataset.id);
+                });
+                // เรียกฟังก์ชันบันทึกข้อมูลทันทีเพื่อความรวดเร็ว
+                saveEditAttendance();
+            }
         }
 
         async function saveEditAttendance() {
