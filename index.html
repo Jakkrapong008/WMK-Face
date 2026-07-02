@@ -185,7 +185,7 @@
                     <div class="mt-4 sm:mt-0 flex items-center space-x-2">
                         <label class="font-bold text-gray-600">เลือกวันที่:</label>
                         <input type="date" id="dash-date" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="loadDashboard()">
-                        <button onclick="loadDashboard()" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"><i class="fas fa-search"></i></button>
+                        <button onclick="loadDashboard()" class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors shadow-sm" title="ค้นหา/รีเฟรชข้อมูล"><i class="fas fa-sync-alt"></i></button>
                     </div>
                 </div>
 
@@ -267,13 +267,13 @@
                             <canvas id="attendanceChart"></canvas>
                         </div>
 
-                    </div>
-                </div>
-                
-                <div class="mt-8 pt-8 border-t-2 border-gray-200 flex justify-center">
-                     <button onclick="promptLineNotify()" class="bg-[#00B900] hover:bg-[#009900] text-white px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg">
+                <div class="mt-8 pt-8 border-t-2 border-gray-200 flex flex-col items-center gap-4">
+                     <button onclick="promptLineNotify()" class="bg-[#00B900] hover:bg-[#009900] text-white px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg w-full max-w-md">
                         <i class="fab fa-line mr-2 text-2xl"></i> ส่งแจ้งเตือนรายงานเข้ากลุ่ม LINE ทันที
                     </button>
+                    <a href="https://wmk-face2.vercel.app/" target="_blank" rel="noopener noreferrer" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center justify-center text-lg w-full max-w-md">
+                        <i class="fas fa-clipboard-list mr-2 text-xl"></i> บันทึกข้อมูลครูเวรและการอบรมประจำวัน
+                    </a>
                 </div>
 
             </div>
@@ -301,11 +301,16 @@
         <div id="edit-popup-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col" id="edit-popup-card">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 shrink-0">
-                    <div>
+                    <div class="flex-grow">
                         <h2 id="edit-popup-title" class="text-2xl font-bold text-blue-600">แก้ไขการมาเรียน</h2>
-                        <p id="edit-popup-date" class="text-gray-500 text-sm mt-1"></p>
+                        <div class="flex justify-between items-center mt-1">
+                            <p id="edit-popup-date" class="text-gray-500 text-sm"></p>
+                            <button onclick="setAllPresent()" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center">
+                                <i class="fas fa-check-double mr-1"></i> มาเรียนทั้งหมด
+                            </button>
+                        </div>
                     </div>
-                    <button onclick="closeEditPopup()" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <button onclick="closeEditPopup()" class="text-gray-400 hover:text-red-500 transition-colors ml-4 self-start">
                         <i class="fas fa-times text-2xl"></i>
                     </button>
                 </div>
@@ -974,6 +979,14 @@
             card.classList.remove('scale-100');
             card.classList.add('scale-95');
             setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+        }
+
+        function setAllPresent() {
+            const selects = document.querySelectorAll('.student-status-select');
+            selects.forEach(sel => {
+                sel.value = 'มาเรียน';
+                toggleOtherInput(sel.dataset.id);
+            });
         }
 
         async function saveEditAttendance() {
